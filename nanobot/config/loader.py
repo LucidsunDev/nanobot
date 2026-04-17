@@ -59,10 +59,10 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
     path = config_path or get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    data = config.model_dump(by_alias=True)
+    data = config.model_dump(by_alias=True)#表示将属性转为json，JSON 库（json.dump）并不认识 Pydantic 对象，它只认识 Python 的基础类型（字典、列表、字符串、数字）。所以必须先转换。by_alias是一个参数，如果它为true那么就会保证这个config的名字变成驼峰命名
 
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        json.dump(data, f, indent=2, ensure_ascii=False)#ensure_ascii为false表示兼容中文等字符，indent=2表示两个缩进,f表示已经打开的对象
 
 
 def _migrate_config(data: dict) -> dict:
