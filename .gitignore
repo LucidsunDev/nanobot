@@ -25,3 +25,6 @@ nano.*.save
 uv.lock
 .nanobot/**
 !.nanobot/config.json
+
+.claude
+CLAUDE.md

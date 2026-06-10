@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from nanobot.channels.base import BaseChannel
 
 _INTERNAL = frozenset({"base", "manager", "registry"})
-
+#用于定义channel里面哪些文件不是channel文件
 
 def discover_channel_names() -> list[str]:
     """Return all built-in channel module names by scanning the package (zero imports)."""
@@ -23,15 +23,15 @@ def discover_channel_names() -> list[str]:
         for _, name, ispkg in pkgutil.iter_modules(pkg.__path__)
         if name not in _INTERNAL and not ispkg
     ]
-
+#返回channel文件夹里面所有的符合条件的channel
 
 def load_channel_class(module_name: str) -> type[BaseChannel]:
     """Import *module_name* and return the first BaseChannel subclass found."""
     from nanobot.channels.base import BaseChannel as _Base
 
-    mod = importlib.import_module(f"nanobot.channels.{module_name}")
-    for attr in dir(mod):
-        obj = getattr(mod, attr)
+    mod = importlib.import_module(f"nanobot.channels.{module_name}")#动态导入模块
+    for attr in dir(mod):#迭代这个模块里面的所有的属性和方法，dir可以获取这个对象里面的所有属性和方法
+        obj = getattr(mod, attr)#getattr公国字符串名称获取对象的属性
         if isinstance(obj, type) and issubclass(obj, _Base) and obj is not _Base:
             return obj
     raise ImportError(f"No BaseChannel subclass in nanobot.channels.{module_name}")
