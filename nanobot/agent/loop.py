@@ -451,7 +451,7 @@ class AgentLoop:
         self._save_turn(session, all_msgs, 1 + len(history))
         self.sessions.save(session)
         self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
-      
+        logger.info(final_content)
 
         if (mt := self.tools.get("message")) and isinstance(mt, MessageTool) and mt._sent_in_turn:
             return None
