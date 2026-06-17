@@ -158,8 +158,8 @@ class AgentLoop:
     def _set_tool_context(self, channel: str, chat_id: str, message_id: str | None = None) -> None:
         """Update context for all tools that need routing info."""
         for name in ("message", "spawn", "cron"):
-            if tool := self.tools.get(name):
-                if hasattr(tool, "set_context"):
+            if tool := self.tools.get(name):#将self.tools.get(name)的返回值赋值给tool,然后直接使用tool进行判断
+                if hasattr(tool, "set_context"):#虽然我们知道 message/spawn/cron 理论上应该都有 set_context 方法，但用 hasattr 来保障就算将来换了实现或者某个工具没这方法，也不会炸。
                     tool.set_context(channel, chat_id, *([message_id] if name == "message" else []))
 
     @staticmethod
@@ -183,7 +183,7 @@ class AgentLoop:
     async def _run_agent_loop(
         self,
         initial_messages: list[dict],
-        on_progress: Callable[..., Awaitable[None]] | None = None,
+        on_progress: Callable[..., Awaitable[None]] | None = None,#一个函数，用来发送工具提示和思考内容
     ) -> tuple[str | None, list[str], list[dict]]:
         """Run the agent iteration loop."""
         messages = initial_messages
@@ -380,13 +380,15 @@ class AgentLoop:
                 current_message=msg.content, channel=channel, chat_id=chat_id,
             )
             final_content, _, all_msgs = await self._run_agent_loop(messages)
+            #  _  约定俗称表示此返回值丢弃
             self._save_turn(session, all_msgs, 1 + len(history))
             self.sessions.save(session)
-            self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
+            self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))#异步执行协程
             return OutboundMessage(channel=channel, chat_id=chat_id,
                                   content=final_content or "Background task completed.")
 
         preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
+        #取前80个，防止日志刷屏
         logger.info("Processing message from {}:{}: {}", msg.channel, msg.sender_id, preview)
 
         key = session_key or msg.session_key
@@ -419,11 +421,11 @@ class AgentLoop:
         await self.memory_consolidator.maybe_consolidate_by_tokens(session)
 
         self._set_tool_context(msg.channel, msg.chat_id, msg.metadata.get("message_id"))
-        if message_tool := self.tools.get("message"):
-            if isinstance(message_tool, MessageTool):
+        if message_tool := self.tools.get("message"):#检查这个工具注册了
+            if isinstance(message_tool, MessageTool):#检查这个工具注册的对
                 message_tool.start_turn()
 
-        history = session.get_history(max_messages=0)
+        history = session.get_history(max_messages=0)#得到当前session的全部未归档消息，并且保证消息合法
         initial_messages = self.context.build_messages(
             history=history,
             current_message=msg.content,
@@ -449,6 +451,7 @@ class AgentLoop:
         self._save_turn(session, all_msgs, 1 + len(history))
         self.sessions.save(session)
         self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
+      
 
         if (mt := self.tools.get("message")) and isinstance(mt, MessageTool) and mt._sent_in_turn:
             return None
@@ -461,6 +464,7 @@ class AgentLoop:
         )
 
     def _save_turn(self, session: Session, messages: list[dict], skip: int) -> None:
+        #把本轮对话中新增的消息保存到session里面
         """Save new-turn messages into session, truncating large tool results."""
         from datetime import datetime
         for m in messages[skip:]:
