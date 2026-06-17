@@ -276,7 +276,11 @@ class AgentLoop:
             else:
                 task = asyncio.create_task(self._dispatch(msg))
                 self._active_tasks.setdefault(msg.session_key, []).append(task)
+                #如果没有这个键那就加这个键和值，如果有的话那就加上这个task
                 task.add_done_callback(lambda t, k=msg.session_key: self._active_tasks.get(k, []) and self._active_tasks[k].remove(t) if t in self._active_tasks.get(k, []) else None)
+                # lambda表达式语法：lambda 参数列表: 返回值表达式
+                # k=msg.session_key表示这个有默认值，self._active_tasks.get(k, [])表示取键k的值，如果没有k就返回[]不要keyError
+                
 
     async def _handle_stop(self, msg: InboundMessage) -> None:
         """Cancel all active tasks and subagents for the session."""
@@ -310,7 +314,7 @@ class AgentLoop:
 
     async def _dispatch(self, msg: InboundMessage) -> None:
         """Process a message under the global lock."""
-        async with self._processing_lock:
+        async with self._processing_lock:#保证同一个线程只有协程进入这个块
             try:
                 response = await self._process_message(msg)
                 if response is not None:
@@ -358,12 +362,13 @@ class AgentLoop:
         msg: InboundMessage,
         session_key: str | None = None,
         on_progress: Callable[[str], Awaitable[None]] | None = None,
+        #Callable[[str], Awaitable[None]]，Callable表示一个可调用对象，它的参数列表接受一个str，返回一个Awaitable对象，这个Awaitable对象的返回值是None
     ) -> OutboundMessage | None:
         """Process a single inbound message and return the response."""
         # System messages: parse origin from chat_id ("channel:chat_id")
         if msg.channel == "system":
             channel, chat_id = (msg.chat_id.split(":", 1) if ":" in msg.chat_id
-                                else ("cli", msg.chat_id))
+                                else ("cli", msg.chat_id))#如果没有:的话，channel则为cli，chat_id则为原值
             logger.info("Processing system message from {}", msg.sender_id)
             key = f"{channel}:{chat_id}"
             session = self.sessions.get_or_create(key)

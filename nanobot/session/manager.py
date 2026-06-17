@@ -26,7 +26,7 @@ class Session:
     """
 
     key: str  # channel:chat_id
-    messages: list[dict[str, Any]] = field(default_factory=list)
+    messages: list[dict[str, Any]] = field(default_factory=list)#由于python直接写 messages: list = []会导致所有实例共享同一个默认参数，所以说这个default_factory表示每一次创建对象的时候都创建一个全新的列表，default_factory是field的一个参数，field用于对字段进行额外控制
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     metadata: dict[str, Any] = field(default_factory=dict)
